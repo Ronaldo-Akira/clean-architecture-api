@@ -1,4 +1,4 @@
-import { User } from '../../src/usecases/register_user_on_mailing_list/entities/user'
+import { User } from '../../src/usecases/register_user_on_mailing_list/entities'
 
 describe('user domain class', () => {
   test('should not create user with invalid e-mail address', async () => {
