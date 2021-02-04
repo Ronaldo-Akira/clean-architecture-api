@@ -15,7 +15,7 @@ export class RegisterUserController {
     const response = await this.usecase.RegisterUserOnMailingList(userData)
 
     if (response.isRight()) {
-      return created(response)
+      return created(response.value)
     }
   }
 }
