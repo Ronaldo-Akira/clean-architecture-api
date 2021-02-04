@@ -1,12 +1,25 @@
 import { UserData } from '@/entities'
-import { RegisterUserOnMailingList } from '@/usecases/register_user_on_mailing_list'
-import { UserRepository } from '@/usecases/register_user_on_mailing_list/ports'
-import { HttpResponse, HttpRequest } from '@/web-controllers/ports'
 import { RegisterUserController } from '@/web-controllers/register-user-controller'
 import { InMemoryUserRepository } from '@test/usecases/register-user-on-mailing-list/repository/in-memory-user-repository'
 import { InvalidEmailError, InvalidNameError } from '@/entities/errors'
+import { RegisterUserOnMailingList } from '@/usecases/register_user_on_mailing_list'
+import { UserRepository } from '@/usecases/register_user_on_mailing_list/ports/user-repository'
+import { UseCase } from '@/usecases/register_user_on_mailing_list/ports'
+import { HttpRequest, HttpResponse } from '@/web-controllers/ports'
 
 describe('Register user web controller', () => {
+  const users: UserData[] = []
+  const repo: UserRepository = new InMemoryUserRepository(users)
+  const usecase: UseCase = new RegisterUserOnMailingList(repo)
+  const controller: RegisterUserController = new RegisterUserController(usecase)
+
+  class ErrorThrowingUseCaseStub implements UseCase {
+    perform (request: any): Promise<void> {
+      throw Error()
+    }
+  }
+
+  const errorThrowingUseCaseStub: UseCase = new ErrorThrowingUseCaseStub()
   test('should return status code 201 when request contains valid user data', async () => {
     const request: HttpRequest = {
       body: {
@@ -14,10 +27,6 @@ describe('Register user web controller', () => {
         email: 'any@mail.com'
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
     const response: HttpResponse = await controller.handle(request)
     expect(response.statusCode).toEqual(201)
     expect(response.body).toEqual(request.body)
@@ -30,10 +39,6 @@ describe('Register user web controller', () => {
         email: 'any@mail.com'
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
     const response: HttpResponse = await controller.handle(requestWithInvalidName)
     expect(response.statusCode).toEqual(400)
     expect(response.body).toBeInstanceOf(InvalidNameError)
@@ -46,55 +51,53 @@ describe('Register user web controller', () => {
         email: 'invalid_mail.com'
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
     const response: HttpResponse = await controller.handle(requestWithInvalidMail)
     expect(response.statusCode).toEqual(400)
     expect(response.body).toBeInstanceOf(InvalidEmailError)
   })
+
   test('should return status code 400 when request is missing user name', async () => {
-    const requestWithInvalidName: HttpRequest = {
+    const requestWithMissingName: HttpRequest = {
       body: {
         email: 'invalid_mail.com'
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
-    const response: HttpResponse = await controller.handle(requestWithInvalidName)
+    const response: HttpResponse = await controller.handle(requestWithMissingName)
     expect(response.statusCode).toEqual(400)
     expect((response.body as Error).message).toEqual('Missing parameter from request: name')
   })
 
   test('should return status code 400 when request is missing user email', async () => {
-    const requestWithInvalidName: HttpRequest = {
+    const requestWithMissingEmail: HttpRequest = {
       body: {
         name: 'Any name'
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
-    const response: HttpResponse = await controller.handle(requestWithInvalidName)
+    const response: HttpResponse = await controller.handle(requestWithMissingEmail)
     expect(response.statusCode).toEqual(400)
     expect((response.body as Error).message).toEqual('Missing parameter from request: email')
   })
 
   test('should return status code 400 when request is missing user name and email', async () => {
-    const requestWithInvalidName: HttpRequest = {
+    const requestWithMissingNameAndEmail: HttpRequest = {
       body: {
       }
     }
-    const users: UserData[] = []
-    const repo: UserRepository = new InMemoryUserRepository(users)
-    const usecase: RegisterUserOnMailingList = new RegisterUserOnMailingList(repo)
-    const controller: RegisterUserController = new RegisterUserController(usecase)
-    const response: HttpResponse = await controller.handle(requestWithInvalidName)
+    const response: HttpResponse = await controller.handle(requestWithMissingNameAndEmail)
     expect(response.statusCode).toEqual(400)
     expect((response.body as Error).message).toEqual('Missing parameter from request: name email')
+  })
+
+  test('should return status code 500 when servers raises', async () => {
+    const request: HttpRequest = {
+      body: {
+        name: 'Any name',
+        email: 'any@mail.com'
+      }
+    }
+    const controller: RegisterUserController = new RegisterUserController(errorThrowingUseCaseStub)
+    const response: HttpResponse = await controller.handle(request)
+    expect(response.statusCode).toEqual(500)
+    expect(response.body).toBeInstanceOf(Error)
   })
 })
