@@ -1,10 +1,10 @@
 import { UserData } from '@/entities'
 import { RegisterUserController } from '@/web-controllers/register-user-controller'
-import { InMemoryUserRepository } from '@test/usecases/register-user-on-mailing-list/repository/in-memory-user-repository'
+import { InMemoryUserRepository } from '@/usecases/register_user_on_mailing_list/repository/in-memory-user-repository'
 import { InvalidEmailError, InvalidNameError } from '@/entities/errors'
 import { RegisterUserOnMailingList } from '@/usecases/register_user_on_mailing_list'
-import { UserRepository } from '@/usecases/register_user_on_mailing_list/ports/user-repository'
-import { UseCase } from '@/usecases/register_user_on_mailing_list/ports'
+import { UserRepository } from '@/usecases/ports/user-repository'
+import { UseCase } from '@/usecases/ports'
 import { HttpRequest, HttpResponse } from '@/web-controllers/ports'
 
 describe('Register user web controller', () => {
